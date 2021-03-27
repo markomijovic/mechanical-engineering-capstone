@@ -1,4 +1,4 @@
-# Mechanical Engineering Capstone - Bearing Failure in a Rotating Machinery Test rIG
+# Mechanical Engineering Capstone - Bearing Failure in a Rotating Machinery Test Rig
 
 This program is a part of the 2020/21 mechanical engineering capstone project. The program preforms
 statistical analysis and creates unique visualizations on bearing accelerometer data obtained from

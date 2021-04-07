@@ -16,52 +16,66 @@ import seaborn as sns
 
 class Acceleration:
 
-    def __init__(self, path) -> None:
+    def __init__(self, path, day) -> None:
         self.path = path
+        self.df = None
+        self.day = day
 
     def get_acceleration_from_db(self, qry) -> pd.DataFrame:
-        dat = sqlite3.connect(self.path_db)
+        dat = sqlite3.connect(self.path)
         #query = dat.execute("SELECT * From Acceleration")
         query = dat.execute(qry)
         cols = [column[0] for column in query.description]
-        return pd.DataFrame.from_records(data = query.fetchall(), columns = cols)
+        self.df = pd.DataFrame.from_records(data = query.fetchall(), columns = cols)
         
-    def create_box_plot(self, df):
+    def create_box_plot(self):
         fig, axes = plt.subplots(2, 2)
-        fig.suptitle('Acceleration Statistical Distribution. Failure on 1')
-        sns.boxplot(ax=axes[0, 0], x=df["a1"])
-        sns.boxplot(ax=axes[0, 1], x=df["a2"])
-        sns.boxplot(ax=axes[1, 0], x=df["a3"])
-        sns.boxplot(ax=axes[1, 1], x=df["a4"])
-        plt.show()
+        fig.suptitle('Acceleration {}. Failure on 1'.format(self.day))
+        sns.boxplot(ax=axes[0, 0], x=self.df["a1"])
+        sns.boxplot(ax=axes[0, 1], x=self.df["a2"])
+        sns.boxplot(ax=axes[1, 0], x=self.df["a3"])
+        sns.boxplot(ax=axes[1, 1], x=self.df["a4"])
+        fig = plt.gcf()
+        fig.set_size_inches(16, 9)
+        fig.savefig('Box Plot {}'.format(self.day+'.png'), dpi=100)
     
-    def create_heat_plot(self, df):
-        sns.heatmap(df.corr(), linewidths=.5, annot=True, fmt=".2f")
-        plt.show()
-'''
-    def create_line_plot(self, df):
-        df_reshaped = reshape_data(df)
-        sns.lineplot(data=df_reshaped, x="Time", y="Acceleration", hue="Label", alpha=0.5)
-        print("finished plotting. opening the plot...")
-        plt.show()
+    def create_heat_plot(self):
+        fig = plt.figure()
+        ax = plt.axes()
+        sns.heatmap(self.df.corr(), ax=ax, linewidths=.5, annot=True, fmt=".2f")
+        ax.set_title(self.day)
+        fig = plt.gcf()
+        fig.set_size_inches(16, 9)
+        fig.savefig('Correlation Plot {}'.format(self.day+'.png'))
 
-# Helper function for create_line_plot
-def reshape_data(df):
-    time = list(range(1,df["x1"].count()+1))*8
-    old_length = df['x1'].count()
-    combined_accel = pd.Series(df.values.ravel('F'))
-    new_length = len(combined_accel)
-    label = [None] * new_length
-    label_values = ['x1', 'y1', 'x2', 'y2', 'x3', 'y3', 'x4', 'y4']
-    for i in range(1, 9):
-        label[(i - 1) * old_length:i * old_length] = [label_values[i - 1]] * old_length
-    df_new = pd.DataFrame({
-        'Time' : time,
-        'Acceleration' : combined_accel,
-        'Label' : label
-    })
-    return df_new
-'''
+    def create_line_plot(self):
+        time = list(range(1, self.df['a1'].count()+1))
+        plt.figure()
+        plt.plot(time, self.df['a1'], label='bearing1', alpha=0.5)
+        plt.plot(time, self.df['a2'], label='bearing2', alpha=0.4)
+        plt.plot(time, self.df['a3'], label='bearing3', alpha=0.3)
+        plt.plot(time, self.df['a4'], label='bearing4', alpha=0.2)
+        plt.title(self.day)
+        plt.legend()
+        fig = plt.gcf()
+        fig.set_size_inches(16, 9)
+        fig.savefig('Line Plot {}'.format(self.day+'.png'), dpi=100)
+
+    def create_line_subplot(self):
+        time = list(range(1, self.df['a1'].count()+1))
+        fig, axs = plt.subplots(2, 2)
+        fig.suptitle('Acceleration vs Time. {}'.format(self.day))
+        axs[0, 0].plot(time, self.df['a1'])
+        axs[0, 0].set_title('Bearing 1')
+        axs[0, 1].plot(time, self.df['a2'], 'tab:orange')
+        axs[0, 1].set_title('Bearing 2')
+        axs[1, 0].plot(time, -self.df['a3'], 'tab:green')
+        axs[1, 0].set_title('Bearing 3')
+        axs[1, 1].plot(time, -self.df['a4'], 'tab:red')
+        axs[1, 1].set_title('Bearing 4')
+        fig = plt.gcf()
+        fig.set_size_inches(16, 9)
+        fig.savefig('Line SubPlot {}'.format(self.day+'.png'), dpi=100)
 
 class Data:
 
@@ -105,11 +119,9 @@ def truncate_table(conn, del_query):
     conn.commit()
 
 
-if __name__ == "__main__":
-    db_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'data/processed/accelerationV2.db'))
-    
-    data_by_day = [None] * 7
+def populate_db(db_path):
 
+    data_by_day = [None] * 7
     for i, data in enumerate(data_by_day):
         
         data = Data(
@@ -123,9 +135,26 @@ if __name__ == "__main__":
                         VALUES(?,?,?,?) '''.format(i+1),
             ''' DELETE FROM day{} '''.format(i+1)
         )
+    return data_by_day
+
+def create_plots(db_path):
     
-    ## analysis
-    db_path = 'data/processed/accelerationV2.db'
-    p_absolute = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', db_path))
-    accel = Acceleration(p_absolute)
-    print(accel.path)
+    accel = [None] * 7
+    for i, val in enumerate(accel):
+
+        val = Acceleration(db_path,'Day{}'.format(i+1))
+        val.get_acceleration_from_db("SELECT * From day{}".format(i+1))
+        val.create_box_plot()
+        val.create_heat_plot()
+        val.create_line_plot()
+        val.create_line_subplot()
+
+if __name__ == "__main__":
+    # file path to the .db main data storage file
+    db_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'data/processed/accelerationV2.db'))
+    
+    # only run below when u want to read the data from raw files and store in a single .db file
+    #data_by_day = populate_db(db_path=)
+
+    # analysis
+    create_plots(db_path)

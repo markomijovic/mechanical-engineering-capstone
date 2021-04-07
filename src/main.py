@@ -76,7 +76,7 @@ class Data:
         try:
             self.conn = sqlite3.connect(self.db_dir)
         except Error as e:
-            print(e)
+            print('Error:',e)
         
     def read_raw_data(self):
         filenames = [name for name in os.listdir(self.raw_dir) if os.path.isfile(os.path.join(self.raw_dir, name))]
@@ -86,7 +86,7 @@ class Data:
         filenames = sorted(filenames)
         for i,file in enumerate(filenames):
             self.acceleration[i:i+1,:,:] =np.fromfile(os.path.join(self.raw_dir, file), dtype=float, sep=" ").reshape(20480,samples_per_row)
-
+        
     def write_to_db(self, write_query, del_query):
         truncate_table(self.conn, del_query)
         cur = self.conn.cursor()
@@ -106,11 +106,26 @@ def truncate_table(conn, del_query):
 
 
 if __name__ == "__main__":
+    db_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'data/processed/accelerationV2.db'))
+    
+    data_by_day = [None] * 7
 
-    ## 
-
+    for i, data in enumerate(data_by_day):
+        
+        data = Data(
+            db_path,
+            os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'data/raw/2/{}'.format(i+1)))
+        )
+        data.connect_database()
+        data.read_raw_data()
+        data.write_to_db(
+            ''' INSERT INTO day{}(a1, a2, a3, a4)
+                        VALUES(?,?,?,?) '''.format(i+1),
+            ''' DELETE FROM day{} '''.format(i+1)
+        )
+    
     ## analysis
-    db_path = 'data/processed/acceleration2.db'
+    db_path = 'data/processed/accelerationV2.db'
     p_absolute = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', db_path))
     accel = Acceleration(p_absolute)
     print(accel.path)

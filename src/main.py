@@ -13,6 +13,7 @@ import sqlite3
 from sqlite3 import Error
 import matplotlib.pyplot as plt
 import seaborn as sns
+from ML import *
 
 class Acceleration:
 
@@ -20,6 +21,9 @@ class Acceleration:
         self.path = path
         self.df = None
         self.day = day
+
+    def __getDF__(self) -> pd.DataFrame:
+        return self.df
 
     def get_acceleration_from_db(self, qry) -> pd.DataFrame:
         dat = sqlite3.connect(self.path)
@@ -76,6 +80,8 @@ class Acceleration:
         fig = plt.gcf()
         fig.set_size_inches(16, 9)
         fig.savefig('Line SubPlot {}'.format(self.day+'.png'), dpi=100)
+
+    
 
 class Data:
 
@@ -137,17 +143,19 @@ def populate_db(db_path):
         )
     return data_by_day
 
-def create_plots(db_path):
+def create_acceleration(db_path, to_plot) -> list[Acceleration]:
     
     accel = [None] * 7
     for i, val in enumerate(accel):
 
         val = Acceleration(db_path,'Day{}'.format(i+1))
         val.get_acceleration_from_db("SELECT * From day{}".format(i+1))
-        val.create_box_plot()
-        val.create_heat_plot()
-        val.create_line_plot()
-        val.create_line_subplot()
+        if to_plot:
+            val.create_box_plot()
+            val.create_heat_plot()
+            val.create_line_plot()
+            val.create_line_subplot()
+    return accel
 
 if __name__ == "__main__":
     # file path to the .db main data storage file
@@ -157,4 +165,8 @@ if __name__ == "__main__":
     #data_by_day = populate_db(db_path=)
 
     # analysis
-    create_plots(db_path)
+    make_plots = False # change to true if I want plots
+    acceleration = create_acceleration(db_path, make_plots)
+    print(acceleration)
+    # ML (scikit and pytorch)
+    scikit_model = Learning()

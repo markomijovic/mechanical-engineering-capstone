@@ -15,10 +15,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pickle
 from ML import *
-import tensorflow as tf
-tf.random.set_seed(12345)
-from tensorflow.keras.layers import Dense, LSTM, Dropout, TimeDistributed,Flatten, Conv3D, MaxPooling3D
-from tensorflow.keras import Sequential
 
 class Acceleration:
 
@@ -186,63 +182,18 @@ if __name__ == "__main__":
     #acceleration = create_acceleration(db_path, make_plots) # list[Acceleration]
 
     # ML 
-    #RAN OKget_all_accel(db_path) # saved accel to accel.pkz
+    #RAN OK
+    # get_all_accel(db_path) # saved accel to accel.pkz
     learning = Learning()
     data = learning.load_data(True)
+    print('done')
+    '''
     test_size = 0.4
     data = learning.scale(data[0], test_size=test_size)
-    bins = np.array([0,250,1000,2500,5000,10000])
-    #data_about_tests = {"name": "2nd", "length": 984, "broken": [0]}
-
     seq_len=30 # sequence length
     X_train_series, X_test_series, y_train, y_test = learning.prepare_data_series(data,seq_len, test_size=test_size) # generate train and test sets
-    subsequences = 5    # number of subsequences look at in 3D Convolutional layers
-    timesteps = seq_len//subsequences   #timesteps left in each subsequence
-    #print(len(X_train_series))
-    X_train_series_sub = np.array(
-        X_train_series.reshape(
-            (X_train_series.shape[0], 
-            subsequences, 
-            timesteps,
-            4,
-            X_train_series.shape[-1]//4
-            ,1)
-        ) 
-    ) # generate X_train with sub sequences
+    '''
     
-    X_test_series_sub = np.array(
-        X_test_series.reshape(
-            (X_test_series.shape[0], 
-            subsequences, 
-            timesteps,
-            4,
-            X_train_series.shape[-1]//4
-            ,1)
-        )
-    )  # generate X_test with sub sequences
-
     #print('Train set shape', X_train_series_sub.shape)
     #print('Test set shape', X_test_series_sub.shape)
     
-
-
-
-
-    '''
-    test_size = 0.6                 # define size of test set
-    for i in range(3):
-        data[i] = scale(data[i], test_size=test_size, minmax = True) #scale data
-    bins = np.array([0,250,1000,2500,5000,10000])           # define bins to sort frequencies into
-    test_names = ["1st", "2nd", "3rd"]                      # test names
-    data_about_tests = [{"name": "1st", "length": 2156, "broken": [2,3]},
-                        {"name": "2nd", "length": 984, "broken": [0]},  
-                        {"name": "3rd", "length": 6324, "broken": [2]}] # data about test displayed 
-    '''
-    '''
-    scikit_model.df = acceleration[-1].__getDF__() # day 7 (failure day)
-    scikit_model.append_time()
-    scikit_df = scikit_model.label_data()
-    scaler=QuantileTransformer(n_quantiles=20)
-    scikit_model.plot_output(scaler, scikit_df)
-    #df_new = scikit_model.quantile_scale(scikit_df)
-    '''

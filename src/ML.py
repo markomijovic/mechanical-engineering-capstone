@@ -2,11 +2,11 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import precision_score, recall_score, make_scorer
-from sklearn.pipeline import Pipeline 
 import numpy as np
 import pickle
 import os
 import matplotlib.pyplot as plt
+from PIL import Image
 
 class Learning:
 
@@ -126,6 +126,26 @@ class Learning:
         plt.title('Regression ML Model - Train Metrics')
         plt.show()
 
+    def make_image(self, data):
+        values = np.swapaxes(data, 1,2)
+        sh = values.shape
+        cut = 10
+        h = sh[0]-cut
+        w = sh[1]
+        d = values[0:h, :, 0]
+        from matplotlib import pyplot as plt
+        plt.imshow(d, interpolation='nearest')
+        plt.title('Bearing 1. All Days')
+        plt.show()
+        arr = np.zeros((h, w, 3))
+        for i, row in enumerate(d):
+            p = rescale(row)
+            arr[i, :, 0] = p
+        img = Image.fromarray(arr, 'RGB')
+        img.show()
+
+def rescale(a):
+    return ((255*(a - np.min(a))/np.ptp(a)).astype(int))
 
 def min_recall_precision(est, X, y_true, sample_weight=None):
     y_pred = est.predict(X)

@@ -186,5 +186,6 @@ if __name__ == "__main__":
     learning = Learning()
     data = learning.load_data(True)
     #print('final output',data.shape)
-    learning.run(data)
+    learning.make_image(data)
+    #learning.run(data)
     

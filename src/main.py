@@ -2,8 +2,8 @@
 ### Date: March 26, 2021
 """
 This program is a part of the 2020/21 mechanical engineering capstone project. The program preforms
-statistical analysis and creates unique visualizations on bearing accelerometer data obtained from
-https://www.kaggle.com/vinayak123tyagi/bearing-dataset?select=1st_test
+statistical and ML analysis on bearing accelerometer data obtained from
+https://www.kaggle.com/vinayak123tyagi/bearing-dataset?select=2nd_test  2ND Test Only
 Program is for academic and learning purposes only.
 """
 import os
@@ -82,7 +82,6 @@ class Acceleration:
         fig.set_size_inches(16, 9)
         fig.savefig('Line SubPlot {}'.format(self.day+'.png'), dpi=100)
 
-    
 
 class Data:
 
@@ -186,13 +185,9 @@ if __name__ == "__main__":
     # get_all_accel(db_path) # saved accel to accel.pkz
     learning = Learning()
     data = learning.load_data(True)
-    print('done')
-    '''
-    test_size = 0.4
-    data = learning.scale(data[0], test_size=test_size)
-    seq_len=30 # sequence length
-    X_train_series, X_test_series, y_train, y_test = learning.prepare_data_series(data,seq_len, test_size=test_size) # generate train and test sets
-    '''
+    print('final output',data.shape)
+    
+    
     
     #print('Train set shape', X_train_series_sub.shape)
     #print('Test set shape', X_test_series_sub.shape)

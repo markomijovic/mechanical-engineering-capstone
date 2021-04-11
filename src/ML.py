@@ -50,10 +50,13 @@ class Learning:
         values = self.binning(bins,accel)
         maxs = np.expand_dims(abs(accel).max(axis=1),2)
         stds = np.expand_dims(accel.std(axis=1),2)
-        values = np.concatenate((maxs, stds, values),axis = 2)
+        values = np.concatenate((maxs, stds, values),axis = 2) # adds maxs and stds to the front of 984x4x(max, std, bins)
+        print('after adding max,stds', values.shape)
     
         values = np.swapaxes(values, 1,2)
-        values = values.reshape((values.shape[0], values.shape[1]*values.shape[2]))
+        print('swap axes:', values.shape)
+        #values = values.reshape((values.shape[0], values.shape[1]*values.shape[2]))
+        #print('reshape:', values.shape)
         return values, bins
 
     def binning(self, bins, accel):
@@ -101,23 +104,6 @@ class Learning:
         for i in range (0,seq_len):
             X[:,i,:] = data[i:-seq_len+i,:]
         y = data[seq_len:,:]
-        return X,y
-
-    def generate_sequences_pad_front(self, data, seq_len):
-        '''
-        generates sequences from data with padding zeros in front
-        :param data: data from which the sequence should be generated
-        :param seq_len: length of each sequence (must be int)
-        :return X: sequences stored in an array with shape: 
-                (length of test, sequence length, number of bearings*number of features engineered)
-        :return y: values to be predicted. Next value after each sequence has shape:
-                (length of test, number of bearings*number of features engineered)
-        '''
-        X = np.zeros([data.shape[0], seq_len, data.shape[1]])
-        d =  np.pad(data, ((seq_len,0),(0,0)), 'constant')
-        for i in range (0,seq_len):
-            X[:,i,:] = d[i:-seq_len+i,:]
-        y = data[:,:]
         return X,y
 
     def split_data_set(self, X,y, test_size = 0.5):

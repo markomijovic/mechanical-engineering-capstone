@@ -1,9 +1,8 @@
 import pandas as pd
-from pandas.core.reshape.tile import cut
-from sklearn.preprocessing import StandardScaler, QuantileTransformer
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import precision_score, recall_score, make_scorer
 from sklearn.pipeline import Pipeline 
-from itertools import chain
 import numpy as np
 import pickle
 import os
@@ -91,9 +90,49 @@ class Learning:
                 else:
                     d = np.concatenate( (data[i][j], [0]) )
                 df.loc[(sh[0]-cut_off)*j + i] = d
-
-        return df
         
+        X = df.drop(columns=[101]).values
+        y = df[101].values
+        print(f"Shapes of X={X.shape} y={y.shape}, #Fail Cases={y.sum()}")
+        grid = GridSearchCV(
+            estimator=LogisticRegression(max_iter=1000),
+            param_grid={'class_weight': [{0: 1, 1: v} for v in np.linspace(1, 5, 30)]},
+            scoring={'precision': make_scorer(precision_score), 
+                    'recall': make_scorer(recall_score),
+                    'min_both': min_recall_precision},
+            refit='min_both',
+            return_train_score=True,
+            cv=10,
+            n_jobs=-1
+        )
+        grid.fit(X, y)
+        plt.figure(figsize=(12, 4))
+        df_results = pd.DataFrame(grid.cv_results_)
+        for score in ['mean_test_recall', 'mean_test_precision', 'mean_test_min_both']:
+            plt.plot([_[1] for _ in df_results['param_class_weight']], 
+                    df_results[score], 
+                    label=score)
+        plt.legend()
+        plt.title('Regression ML Model - Test Metrics')
+        plt.show()
+
+        plt.figure(figsize=(12, 4))
+        df_results = pd.DataFrame(grid.cv_results_)
+        for score in ['mean_train_recall', 'mean_train_precision', 'mean_test_min_both']:
+            plt.scatter(x=[_[1] for _ in df_results['param_class_weight']], 
+                y=df_results[score.replace('test', 'train')], 
+                label=score)
+        plt.legend()
+        plt.title('Regression ML Model - Train Metrics')
+        plt.show()
+
+
+def min_recall_precision(est, X, y_true, sample_weight=None):
+    y_pred = est.predict(X)
+    recall = recall_score(y_true, y_pred)
+    precision = precision_score(y_true, y_pred)
+    return min(recall, precision)
+
 if __name__ == "__main__":
     pass
  

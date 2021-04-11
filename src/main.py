@@ -188,8 +188,3 @@ if __name__ == "__main__":
     #print('final output',data.shape)
     learning.run(data)
     
-    
-    
-    #print('Train set shape', X_train_series_sub.shape)
-    #print('Test set shape', X_test_series_sub.shape)
-    

@@ -4,17 +4,19 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline 
 from itertools import chain
 import numpy as np
+import pickle
+import os
 import matplotlib.pyplot as plt
 
 class Learning:
 
-    def __init__(self, Accel) -> None:
-        self.Accel = Accel
+    def __init__(self) -> None:
+        pass
     
     def __setattr__(self, name: str, value: any) -> None:
         self.__dict__[name] = value
 
-    def load_data(self, force = False):
+    def load_data(self, force):
         '''
         loads raw_data from pickle files and then engineers feature from that data. 
         if data.pkz already exists it just loads this pickle 
@@ -24,16 +26,22 @@ class Learning:
                 (length of test 2, number of bearings*number of engineered features ),
                 (length of test 3, number of bearings*number of engineered features ))
         '''  
-        data = []
-        values, bins = feature_engeneering(raw_data)
-        data.append(values)
-        data = np.array(data)
-        # replace with sql
-        with open("data.pkz", "wb") as file:
-            pickle.dump(data, file)
+        if "engineered.pkz" in os.listdir(".") and not force:
+            print("Data already engineered. Loading from pickle")
+            with open("engineered.pkz", "rb") as file:
+                data = pickle.load(file)
+        else:
+            data = []
+            with open("accel.pkz", "rb") as file:
+                accel = pickle.load(file)
+                values, bins = self.feature_engeneering(accel)
+                data.append(values)
+            data = np.array(data)
+            with open("engineered.pkz", "wb") as file:
+                pickle.dump(self, file)
         return data 
 
-    def feature_engeneering(accel):
+    def feature_engeneering(self, accel):
         '''
         engineers features of raw data: for each bearing following features are engineered: maximums, standard deviation and frequency bins
         beacause test 1 measures two values per bearing every other value is dropped so the tests are compareable.
@@ -41,7 +49,7 @@ class Learning:
         :return values: engineered values with shape (length of test, number of bearings*number of engineered features)
         '''
         bins = np.array([0,250,1000,2500,5000,10000])
-        values = binning(bins,accel)
+        values = self.binning(bins,accel)
         maxs = np.expand_dims(abs(accel).max(axis=1),2)
         stds = np.expand_dims(accel.std(axis=1),2)
         values = np.concatenate((maxs, stds, values),axis = 2)
@@ -50,24 +58,103 @@ class Learning:
         values = values.reshape((values.shape[0], values.shape[1]*values.shape[2]))
         return values, bins
 
-    def binning(bins, raw_data):
+    def binning(self, bins, accel):
         '''
-        takes raw_data values and calculates the fft analysis of them. Then divides the fft data into bins and takes the mean of each bin.
-        :param bins: bins to devide the data into 
-        :param raw_data: data to analyse and put into bin afterwards
-        :retrun values: the values for each bin with shape:(length of test, number of bearings, number of bins)
+        takes acceleration -> does fourier transform to get frequency -> bins them.
+        :param bins: frequency bins 
+        :param accel: acceleration data
+        :return values: the values for each bin with shape:(length of test, number of bearings, number of bins)
         '''
-        values = np.zeros((raw_data.shape[0],raw_data.shape[2],len(bins)-1))
-        for j in tqdm(range(raw_data.shape[2]),desc="Binning Frequencies",  ascii=True, ncols=100):
-            f = np.fft.fft(raw_data[:,:,j])
+        values = np.zeros((accel.shape[0],accel.shape[2],len(bins)-1))
+        for j in range(accel.shape[2]):
+            f = np.fft.fft(accel[:,:,j])
             freq = np.fft.fftfreq(20480)*20000
             for i in range(len(bins)-1):
                 values[:,j,i]+=np.absolute(f[:,(freq>bins[i])&(freq<=bins[i+1])]).mean(axis=1)
         return values
 
+    def scale(self, data, test_size=0.5):
+        '''
+        scales data with the Standard Scaler
+        :param test_size: percentage of the dataset to be treated as test set
+        :return values: scaled values
+        '''
+        l = int(data.shape[0]*(1-test_size))
+        scaler = StandardScaler()
+        scaler.fit(data[:l])
+        values = scaler.transform(data)
+        return values
 
+    def generate_sequences_no_padding(self, data, seq_len):
+        '''
+        generates sequences from data without padding
+        :param data: data from which the sequence should be generated
+        :param seq_len: length of each sequence (must be int)
+        :return X: sequences stored in an array with shape: 
+                (length of test - sequence length, sequence length, number of bearings*number of features engineered)
+        :return y: values to be predicted. Next value after each sequence has shape:
+                (length of test - sequence length, number of bearings*number of features engineered)
+        '''
+        X = np.zeros([data.shape[0]-seq_len, seq_len, data.shape[1]])
+        for i in range (0,seq_len):
+            X[:,i,:] = data[i:-seq_len+i,:]
+        y = data[seq_len:,:]
+        return X,y
 
+    def generate_sequences_pad_front(self, data, seq_len):
+        '''
+        generates sequences from data with padding zeros in front
+        :param data: data from which the sequence should be generated
+        :param seq_len: length of each sequence (must be int)
+        :return X: sequences stored in an array with shape: 
+                (length of test, sequence length, number of bearings*number of features engineered)
+        :return y: values to be predicted. Next value after each sequence has shape:
+                (length of test, number of bearings*number of features engineered)
+        '''
+        X = np.zeros([data.shape[0], seq_len, data.shape[1]])
+        d =  np.pad(data, ((seq_len,0),(0,0)), 'constant')
+        for i in range (0,seq_len):
+            X[:,i,:] = d[i:-seq_len+i,:]
+        y = data[:,:]
+        return X,y
 
+    def split_data_set(self, X,y, test_size = 0.5):
+        '''
+        splits data set into train and test set
+        :param X: data to spilt for X_train and X_test
+        :param y: data to spilt for y_train and y_test
+        :param test_size: percentage of data that should be in the test sets
+        :return X_train, X_test, y_train, y_test: X and y values for train and test
+        '''
+        length = X.shape[0]
+        X_train = X[:int(-length*test_size)]
+        y_train = y[:int(-length*test_size)]
+        X_test = X[int(-length*test_size):]
+        y_test = y[int(-length*test_size):]
+        return X_train, X_test, y_train, y_test
+
+    def prepare_data_series(self, data, seq_len, test_size=0.5):
+        '''
+        Generates X_train, X_test, y_train, y_test
+        Each of the four arrays contains a dataset for each of the test runs. So if you want to 
+        train on the first test your data set would be called by X_train[0].
+        Addiotanally X_train and y_train have the possibility to train on all test at the same time.
+        The values for that are stored in X_train[3] and y_train[3]
+        :param data: data to be used for generation of train and test sets
+        :param seq_len:  length of each sequence (must be int)
+        :param test_size: percentage of data that should be in the test sets
+        :return X_train_series, X_test_series, y_train, y_test: Data sets for test and train, the X_values for each are in sequential form.
+        '''
+        prepared_data = []
+        X_series,y_series = self.generate_sequences_no_padding(data, seq_len)
+        prepared_data.append(self.split_data_set(X_series,y_series,test_size))
+        prepared_data = np.array(prepared_data)
+        X_train_series = np.array(prepared_data[0][0])
+        X_test_series = np.array(prepared_data[0][1])
+        y_train = np.array(prepared_data[0][2])
+        y_test = np.array(prepared_data[0][3])
+        
+        return X_train_series, X_test_series, y_train, y_test
 
     '''
     def __init__(self, df=None) -> None:

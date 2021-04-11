@@ -185,7 +185,8 @@ if __name__ == "__main__":
     # get_all_accel(db_path) # saved accel to accel.pkz
     learning = Learning()
     data = learning.load_data(True)
-    print('final output',data.shape)
+    #print('final output',data.shape)
+    learning.run(data)
     
     
     

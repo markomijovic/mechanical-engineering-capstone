@@ -13,6 +13,7 @@ import sqlite3
 from sqlite3 import Error
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pickle
 from ML import *
 
 class Acceleration:
@@ -124,6 +125,18 @@ def truncate_table(conn, del_query):
     cur.execute(sql)
     conn.commit()
 
+def get_all_accel(db_path):
+    accel = None
+ 
+    data = Data(
+            db_path,
+            os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'data/raw/2/all'))
+        )
+    data.connect_database()
+    data.read_raw_data()
+    with open("accel.pkz", "wb") as file:
+        pickle.dump(data.acceleration, file)
+
 
 def populate_db(db_path):
 
@@ -155,6 +168,7 @@ def create_acceleration(db_path, to_plot) -> list[Acceleration]:
             val.create_heat_plot()
             val.create_line_plot()
             val.create_line_subplot()
+        accel[i] = val
     return accel
 
 if __name__ == "__main__":
@@ -164,9 +178,18 @@ if __name__ == "__main__":
     # only run below when u want to read the data from raw files and store in a single .db file
     #data_by_day = populate_db(db_path=)
 
-    # analysis
-    make_plots = False # change to true if I want plots
-    acceleration = create_acceleration(db_path, make_plots)
-    print(acceleration)
+    # statistical plots by day
+    #make_plots = False # change to true if I want plots
+    #acceleration = create_acceleration(db_path, make_plots) # list[Acceleration]
     # ML (scikit and pytorch)
-    scikit_model = Learning()
+    get_all_accel(db_path)
+
+
+    '''
+    scikit_model.df = acceleration[-1].__getDF__() # day 7 (failure day)
+    scikit_model.append_time()
+    scikit_df = scikit_model.label_data()
+    scaler=QuantileTransformer(n_quantiles=20)
+    scikit_model.plot_output(scaler, scikit_df)
+    #df_new = scikit_model.quantile_scale(scikit_df)
+    '''

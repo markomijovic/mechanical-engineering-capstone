@@ -177,15 +177,15 @@ if __name__ == "__main__":
     #data_by_day = populate_db(db_path=)
 
     # STAT PLOTS
-    #make_plots = False # change to true if I want plots
-    #acceleration = create_acceleration(db_path, make_plots) # list[Acceleration]
+    make_plots = True # change to true if I want plots
+    acceleration = create_acceleration(db_path, make_plots) # list[Acceleration]
 
     # ML 
     #RAN OK
     # get_all_accel(db_path) # saved accel to accel.pkz
-    learning = Learning()
-    data = learning.load_data(True)
+    #learning = Learning()
+    #data = learning.load_data(True)
     #print('final output',data.shape)
-    learning.make_image(data)
+    #learning.make_image(data)
     #learning.run(data)
     
